@@ -1,4 +1,4 @@
-import type { WeatherDetails } from "@/types";
+import type { WeatherDetails, ForecastDay } from "@/types";
 
 const getApiKey = (): string | undefined => {
   const envKey = (import.meta as any).env?.VITE_WEATHER_API_KEY as string | undefined;
@@ -30,4 +30,43 @@ export async function fetchCurrentWeather(
     country: data.sys?.country ?? "",
   };
   return details;
+}
+
+export async function fetchForecast(
+  city: string,
+  units: "metric" | "imperial" = "metric",
+  apiKey?: string
+): Promise<ForecastDay[]> {
+  const key = apiKey ?? getApiKey();
+  if (!key) throw new Error("Missing OpenWeatherMap API key");
+  const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${key}&units=${units}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch forecast");
+  const data = await res.json();
+
+  const groups: Record<string, any[]> = {};
+  for (const item of data.list) {
+    const date = item.dt_txt.split(" ")[0];
+    (groups[date] ||= []).push(item);
+  }
+
+  const days: ForecastDay[] = Object.keys(groups)
+    .slice(0, 5)
+    .map((date) => {
+      const items = groups[date];
+      const tempsMin = items.map((i) => i.main.temp_min);
+      const tempsMax = items.map((i) => i.main.temp_max);
+      const popAvg = Math.round((items.reduce((a, b) => a + (b.pop || 0), 0) / items.length) * 100);
+      const midday = items.find((i) => i.dt_txt.includes("12:00:00")) || items[0];
+      const icon = midday.weather?.[0]?.icon || items[0].weather?.[0]?.icon || "01d";
+      return {
+        dateISO: date,
+        icon,
+        min: Math.round(Math.min(...tempsMin)),
+        max: Math.round(Math.max(...tempsMax)),
+        pop: popAvg,
+      } as ForecastDay;
+    });
+
+  return days;
 }

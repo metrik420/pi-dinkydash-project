@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Clock, Calendar, Thermometer, Zap, Users, Star, RefreshCcw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Clock, Calendar, Thermometer, Zap, Users, Star, RefreshCcw, Plus, Pencil, Settings as SettingsIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentWeather } from '@/services/weather';
 import { useDashboardStore } from '@/store/dashboard';
@@ -7,21 +7,31 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-
-interface CountdownEvent {
-  name: string;
-  date: Date;
-  emoji: string;
-}
+import { ForecastWidget } from '@/components/ForecastWidget';
+import { TaskModal } from '@/components/TaskModal';
+import { EventModal } from '@/components/EventModal';
+import { SettingsDialog } from '@/components/SettingsDialog';
 
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Store selectors
   const city = useDashboardStore((s) => s.city);
   const units = useDashboardStore((s) => s.units);
   const tasks = useDashboardStore((s) => s.tasks);
   const toggleTask = useDashboardStore((s) => s.toggleTask);
+  const addTask = useDashboardStore((s) => s.addTask);
+  const updateTask = useDashboardStore((s) => s.updateTask);
+  const deleteTask = useDashboardStore((s) => s.deleteTask);
 
+  const events = useDashboardStore((s) => s.events);
+  const addEvent = useDashboardStore((s) => s.addEvent);
+  const updateEvent = useDashboardStore((s) => s.updateEvent);
+  const deleteEvent = useDashboardStore((s) => s.deleteEvent);
+
+  const toggles = useDashboardStore((s) => s.toggles);
+
+  // Weather query
   const { data: weather, isLoading, isFetching, refetch, error } = useQuery({
     queryKey: ['weather', city, units],
     queryFn: () => fetchCurrentWeather(city, units),
@@ -32,12 +42,6 @@ export default function Dashboard() {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const countdownEvents: CountdownEvent[] = [
-    { name: 'Christmas', date: new Date('2025-12-25'), emoji: '🎄' },
-    { name: 'Summer Break', date: new Date('2025-07-01'), emoji: '🏖️' },
-    { name: 'Birthday Party', date: new Date('2025-09-15'), emoji: '🎂' },
-  ];
 
   const funFacts = [
     'A group of flamingos is called a flamboyance! 🦩',
@@ -51,14 +55,14 @@ export default function Dashboard() {
     return () => clearInterval(t);
   }, [funFacts.length]);
 
-  const calculateDaysUntil = (targetDate: Date): number => {
-    const now = new Date();
-    const diffTime = targetDate.getTime() - now.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
   const formatTime = (date: Date): string => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatDate = (date: Date): string => date.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const daysUntil = (dateISO: string): number => {
+    const now = new Date();
+    const target = new Date(dateISO);
+    const diff = target.getTime() - now.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
 
   const completed = tasks.filter((t) => t.completed).length;
   const percent = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
@@ -71,13 +75,30 @@ export default function Dashboard() {
     }
   };
 
+  // Modals state
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [eventOpen, setEventOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const editingTask = useMemo(() => tasks.find((t) => t.id === editingTaskId), [tasks, editingTaskId]);
+  const editingEvent = useMemo(() => events.find((e) => e.id === editingEventId), [events, editingEventId]);
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold text-white mb-2 animate-float">Family Dashboard</h1>
-          <p className="text-xl text-white/80">Your daily companion on Raspberry Pi</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div className="text-center flex-1">
+            <h1 className="text-6xl font-bold text-white mb-2 animate-float">Family Dashboard</h1>
+            <p className="text-xl text-white/80">Your daily companion on Raspberry Pi</p>
+          </div>
+          <div className="ml-4">
+            <Button variant="secondary" onClick={() => setSettingsOpen(true)} aria-label="Open settings">
+              <SettingsIcon className="h-4 w-4 mr-2" /> Settings
+            </Button>
+          </div>
         </div>
 
         {/* Main Grid */}
@@ -95,41 +116,43 @@ export default function Dashboard() {
           </div>
 
           {/* Weather */}
-          <div className="widget">
-            <div className="widget-title flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Thermometer className="w-4 h-4" /> Weather • {city}
-              </div>
-              <Button size="sm" variant="secondary" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh weather">
-                <RefreshCcw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-            <div className="text-center">
-              {isLoading && <div className="text-sm text-muted-foreground">Loading...</div>}
-              {error && <div className="text-sm text-destructive">Failed to load weather</div>}
-              {weather && (
-                <div>
-                  <div className="mb-2 flex justify-center">
-                    <img
-                      src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
-                      alt={`Weather icon ${weather.condition}`}
-                      width={80}
-                      height={80}
-                    />
-                  </div>
-                  <div className="widget-content">
-                    {weather.temp}°{units === 'metric' ? 'C' : 'F'}
-                  </div>
-                  <div className="text-sm text-muted-foreground mb-2">{weather.condition}</div>
-                  <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
-                    <div>💧 {weather.humidity}%</div>
-                    <div>🌬️ {weather.wind} {units === 'metric' ? 'm/s' : 'mph'}</div>
-                    <div>🔽 {weather.pressure} hPa</div>
-                  </div>
+          {toggles.showWeather && (
+            <div className="widget">
+              <div className="widget-title flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Thermometer className="w-4 h-4" /> Weather • {city}
                 </div>
-              )}
+                <Button size="sm" variant="secondary" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh weather">
+                  <RefreshCcw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <div className="text-center">
+                {isLoading && <div className="text-sm text-muted-foreground">Loading...</div>}
+                {error && <div className="text-sm text-destructive">Failed to load weather</div>}
+                {weather && (
+                  <div>
+                    <div className="mb-2 flex justify-center">
+                      <img
+                        src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
+                        alt={`Weather icon ${weather.condition}`}
+                        width={80}
+                        height={80}
+                      />
+                    </div>
+                    <div className="widget-content">
+                      {weather.temp}°{units === 'metric' ? 'C' : 'F'}
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">{weather.condition}</div>
+                    <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
+                      <div>💧 {weather.humidity}%</div>
+                      <div>🌬️ {weather.wind} {units === 'metric' ? 'm/s' : 'mph'}</div>
+                      <div>🔽 {weather.pressure} hPa</div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* System Status */}
           <div className="widget">
@@ -142,73 +165,142 @@ export default function Dashboard() {
               <div className="text-sm text-muted-foreground">All systems go!</div>
             </div>
           </div>
+
+          {/* Forecast */}
+          {toggles.showWeather && (
+            <div className="lg:col-span-2 md:col-span-2 col-span-1">
+              <ForecastWidget />
+            </div>
+          )}
         </div>
 
-        {/* Countdown Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {countdownEvents.map((event, index) => (
-            <div key={index} className="widget">
+        {/* Events (Countdowns) */}
+        {toggles.showEvents && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="widget md:col-span-3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="widget-title flex items-center gap-2">
+                  <Calendar className="w-4 h-4" /> Countdowns
+                </div>
+                <Button size="sm" onClick={() => { setEditingEventId(null); setEventOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Event
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {events.map((event) => (
+                  <div key={event.id} className="widget">
+                    <div className="flex items-center justify-between">
+                      <div className="widget-title flex items-center gap-2">
+                        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: event.color || '#06b6d4' }} />
+                        {event.name}
+                      </div>
+                      <Button size="icon" variant="secondary" onClick={() => { setEditingEventId(event.id); setEventOpen(true); }} aria-label={`Edit ${event.name}`}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="text-center">
+                      <div className="emoji-large mb-2">{event.emoji}</div>
+                      <div className="widget-content">{daysUntil(event.dateISO)} days</div>
+                      <div className="text-sm text-muted-foreground">to go!</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tasks */}
+        {toggles.showTasks && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="widget">
+              <div className="flex items-center justify-between">
+                <div className="widget-title flex items-center gap-2">
+                  <Users className="w-4 h-4" /> Today's Tasks
+                </div>
+                <Button size="sm" onClick={() => { setEditingTaskId(null); setTaskOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Task
+                </Button>
+              </div>
+              <div className="space-y-4 mt-2">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 ${
+                      task.completed ? 'bg-secondary/30' : 'bg-white/10'
+                    }`}
+                  >
+                    <button onClick={() => handleToggleTask(task.id)} aria-label={`Toggle ${task.title}`} className="emoji-medium">
+                      {task.completed ? '✅' : '📝'}
+                    </button>
+                    <div className="flex-1 text-left">
+                      <div className={`font-semibold text-card-foreground ${task.completed ? 'line-through opacity-70' : ''}`}>
+                        {task.title}
+                      </div>
+                      <div className="text-sm text-muted-foreground">{task.assignee || 'Unassigned'}</div>
+                    </div>
+                    <Badge variant="secondary" aria-label={`Priority ${task.priority}`}>
+                      {task.priority.toUpperCase()}
+                    </Badge>
+                    <Button size="icon" variant="secondary" onClick={() => { setEditingTaskId(task.id); setTaskOpen(true); }} aria-label={`Edit ${task.title}`}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                  <span>Completion</span>
+                  <span>{percent}%</span>
+                </div>
+                <Progress value={percent} />
+              </div>
+            </div>
+
+            {/* Fun Facts */}
+            <div className="widget">
               <div className="widget-title flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> {event.name}
+                <Star className="w-4 h-4" /> Did You Know?
               </div>
               <div className="text-center">
-                <div className="emoji-large mb-2">{event.emoji}</div>
-                <div className="widget-content">{calculateDaysUntil(event.date)} days</div>
-                <div className="text-sm text-muted-foreground">to go!</div>
+                <div className="emoji-large mb-4">🤔</div>
+                <div className="text-lg text-card-foreground leading-relaxed">{funFacts[currentFactIndex]}</div>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Daily Tasks */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="widget">
-            <div className="widget-title flex items-center gap-2">
-              <Users className="w-4 h-4" /> Today's Tasks
-            </div>
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => handleToggleTask(task.id)}
-                  className={`w-full flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 ${
-                    task.completed ? 'bg-secondary/30' : 'bg-white/10'
-                  }`}
-                >
-                  <span className="emoji-medium">{task.completed ? '✅' : '📝'}</span>
-                  <div className="flex-1 text-left">
-                    <div className={`font-semibold text-card-foreground ${task.completed ? 'line-through opacity-70' : ''}`}>
-                      {task.title}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{task.assignee || 'Unassigned'}</div>
-                  </div>
-                  <Badge variant="secondary" aria-label={`Priority ${task.priority}`}>
-                    {task.priority.toUpperCase()}
-                  </Badge>
-                </button>
-              ))}
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                <span>Completion</span>
-                <span>{percent}%</span>
-              </div>
-              <Progress value={percent} />
-            </div>
           </div>
-
-          {/* Fun Facts */}
-          <div className="widget">
-            <div className="widget-title flex items-center gap-2">
-              <Star className="w-4 h-4" /> Did You Know?
-            </div>
-            <div className="text-center">
-              <div className="emoji-large mb-4">🤔</div>
-              <div className="text-lg text-card-foreground leading-relaxed">{funFacts[currentFactIndex]}</div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Modals */}
+      <TaskModal
+        open={taskOpen}
+        onOpenChange={setTaskOpen}
+        initial={editingTask || undefined}
+        onSubmit={(v) => {
+          if (editingTaskId) {
+            updateTask(editingTaskId, { title: v.title, assignee: v.assignee, priority: v.priority, recurring: v.recurring ?? null });
+          } else {
+            addTask({ title: v.title, assignee: v.assignee, priority: v.priority, recurring: v.recurring ?? null });
+          }
+        }}
+        onDelete={editingTaskId ? () => { deleteTask(editingTaskId); setTaskOpen(false); } : undefined}
+      />
+
+      <EventModal
+        open={eventOpen}
+        onOpenChange={setEventOpen}
+        initial={editingEvent || undefined}
+        onSubmit={(v) => {
+          if (editingEventId) {
+            updateEvent(editingEventId, v);
+          } else {
+            addEvent(v);
+          }
+        }}
+        onDelete={editingEventId ? () => { deleteEvent(editingEventId); setEventOpen(false); } : undefined}
+      />
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }
