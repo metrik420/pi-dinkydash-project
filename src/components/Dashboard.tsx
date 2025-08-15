@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock, Calendar, Thermometer, Zap, Users, Star, RefreshCcw, Plus, Pencil, Settings as SettingsIcon } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCurrentWeather } from '@/services/weather';
 import { useDashboardStore } from '@/store/dashboard';
@@ -91,10 +93,11 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="text-center flex-1">
-            <h1 className="text-6xl font-bold text-white mb-2 animate-float">Family Dashboard</h1>
-            <p className="text-xl text-white/80">Your daily companion on Raspberry Pi</p>
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-2 animate-float">Family Dashboard</h1>
+            <p className="text-lg md:text-xl text-white/80">Your daily companion on Raspberry Pi</p>
           </div>
-          <div className="ml-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button variant="secondary" onClick={() => setSettingsOpen(true)} aria-label="Open settings">
               <SettingsIcon className="h-4 w-4 mr-2" /> Settings
             </Button>
@@ -102,15 +105,15 @@ export default function Dashboard() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Current Time */}
           <div className="widget col-span-1 md:col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-4">
-              <Clock className="w-8 h-8 text-primary animate-pulse-gentle" />
-              <div>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <Clock className="w-8 h-8 text-primary animate-pulse-gentle flex-shrink-0" />
+              <div className="text-center sm:text-left">
                 <div className="widget-title">Current Time</div>
-                <div className="text-4xl font-bold text-card-foreground">{formatTime(currentTime)}</div>
-                <div className="text-lg text-muted-foreground">{formatDate(currentTime)}</div>
+                <div className="text-2xl sm:text-4xl font-bold text-card-foreground">{formatTime(currentTime)}</div>
+                <div className="text-sm sm:text-lg text-muted-foreground">{formatDate(currentTime)}</div>
               </div>
             </div>
           </div>
@@ -127,8 +130,17 @@ export default function Dashboard() {
                 </Button>
               </div>
               <div className="text-center">
-                {isLoading && <div className="text-sm text-muted-foreground">Loading...</div>}
-                {error && <div className="text-sm text-destructive">Failed to load weather</div>}
+                {isLoading && (
+                  <div className="flex items-center justify-center gap-2 py-4">
+                    <LoadingSpinner size="sm" />
+                    <span className="text-sm text-muted-foreground">Loading...</span>
+                  </div>
+                )}
+                {error && (
+                  <div className="text-sm text-destructive bg-destructive/10 p-2 rounded-lg">
+                    Weather unavailable
+                  </div>
+                )}
                 {weather && (
                   <div>
                     <div className="mb-2 flex justify-center">
@@ -176,7 +188,7 @@ export default function Dashboard() {
 
         {/* Events (Countdowns) */}
         {toggles.showEvents && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
             <div className="widget md:col-span-3">
               <div className="flex items-center justify-between mb-4">
                 <div className="widget-title flex items-center gap-2">
@@ -186,7 +198,7 @@ export default function Dashboard() {
                   <Plus className="h-4 w-4 mr-1" /> Add Event
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 {events.map((event) => (
                   <div key={event.id} className="widget">
                     <div className="flex items-center justify-between">
@@ -212,7 +224,7 @@ export default function Dashboard() {
 
         {/* Tasks */}
         {toggles.showTasks && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <div className="widget">
               <div className="flex items-center justify-between">
                 <div className="widget-title flex items-center gap-2">

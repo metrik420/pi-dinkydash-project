@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchForecast } from '@/services/weather';
 import { useDashboardStore } from '@/store/dashboard';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export function ForecastWidget() {
   const city = useDashboardStore((s) => s.city);
@@ -15,12 +16,21 @@ export function ForecastWidget() {
   return (
     <div className="widget">
       <div className="widget-title">5-Day Forecast</div>
-      {isLoading && <div className="text-sm text-muted-foreground">Loading...</div>}
-      {error && <div className="text-sm text-destructive">Failed to load forecast</div>}
+      {isLoading && (
+        <div className="flex items-center justify-center gap-2 py-4">
+          <LoadingSpinner size="sm" />
+          <span className="text-sm text-muted-foreground">Loading forecast...</span>
+        </div>
+      )}
+      {error && (
+        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+          Failed to load forecast. Please check your internet connection.
+        </div>
+      )}
       {data && (
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {data.map((d) => (
-            <div key={d.dateISO} className="rounded-xl p-3 bg-white/10 text-center">
+            <div key={d.dateISO} className="rounded-xl p-2 sm:p-3 bg-white/10 text-center">
               <div className="text-sm text-muted-foreground">
                 {new Date(d.dateISO).toLocaleDateString([], { weekday: 'short' })}
               </div>
