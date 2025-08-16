@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDashboardStore } from '@/store/dashboard';
+import { ApiKeySettings } from '@/components/ApiKeySettings';
 
 export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const city = useDashboardStore((s) => s.city);
@@ -38,12 +39,13 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="location">
-          <TabsList>
-            <TabsTrigger value="location">Location</TabsTrigger>
-            <TabsTrigger value="family">Family</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="features">Features</TabsTrigger>
-          </TabsList>
+           <TabsList>
+             <TabsTrigger value="location">Location</TabsTrigger>
+             <TabsTrigger value="family">Family</TabsTrigger>
+             <TabsTrigger value="appearance">Appearance</TabsTrigger>
+             <TabsTrigger value="features">Features</TabsTrigger>
+             <TabsTrigger value="api">API Keys</TabsTrigger>
+           </TabsList>
           <TabsContent value="location" className="space-y-4 mt-4">
             <div>
               <Label htmlFor="city">Weather City</Label>
@@ -69,25 +71,40 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               </Select>
             </div>
           </TabsContent>
-          <TabsContent value="features" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <span>Weather</span>
-              <Switch checked={toggles.showWeather} onCheckedChange={(v) => setToggles({ showWeather: v })} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Tasks</span>
-              <Switch checked={toggles.showTasks} onCheckedChange={(v) => setToggles({ showTasks: v })} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Countdowns</span>
-              <Switch checked={toggles.showEvents} onCheckedChange={(v) => setToggles({ showEvents: v })} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
-  );
-}
+           <TabsContent value="features" className="space-y-4 mt-4">
+             <div className="flex items-center justify-between">
+               <span>Weather</span>
+               <Switch checked={toggles.showWeather} onCheckedChange={(v) => setToggles({ ...toggles, showWeather: v })} />
+             </div>
+             <div className="flex items-center justify-between">
+               <span>Tasks</span>
+               <Switch checked={toggles.showTasks} onCheckedChange={(v) => setToggles({ ...toggles, showTasks: v })} />
+             </div>
+             <div className="flex items-center justify-between">
+               <span>Countdowns</span>
+               <Switch checked={toggles.showEvents} onCheckedChange={(v) => setToggles({ ...toggles, showEvents: v })} />
+             </div>
+             <div className="flex items-center justify-between">
+               <span>Calendar</span>
+               <Switch checked={toggles.showCalendar} onCheckedChange={(v) => setToggles({ ...toggles, showCalendar: v })} />
+             </div>
+             <div className="flex items-center justify-between">
+               <span>Fun Facts</span>
+               <Switch checked={toggles.showFunFacts} onCheckedChange={(v) => setToggles({ ...toggles, showFunFacts: v })} />
+             </div>
+             <div className="flex items-center justify-between">
+               <span>System Status</span>
+               <Switch checked={toggles.showSystem} onCheckedChange={(v) => setToggles({ ...toggles, showSystem: v })} />
+             </div>
+           </TabsContent>
+           <TabsContent value="api" className="space-y-4 mt-4">
+             <ApiKeySettings />
+           </TabsContent>
+         </Tabs>
+       </DialogContent>
+     </Dialog>
+   );
+ }
 
 function FamilyEditor() {
   const family = useDashboardStore((s) => s.family);

@@ -7,73 +7,48 @@ interface GoogleCalendarEvent {
 }
 
 export const initGoogleCalendar = async (): Promise<boolean> => {
-  try {
-    // Check if Google APIs are loaded
-    if (typeof window.gapi === 'undefined') {
-      await loadGoogleAPIs();
-    }
-
-    await new Promise((resolve, reject) => {
-      window.gapi.load('client:auth2', {
-        callback: resolve,
-        onerror: reject
-      });
-    });
-
-    await window.gapi.client.init({
-      apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
-      scope: 'https://www.googleapis.com/auth/calendar.readonly'
-    });
-
-    return true;
-  } catch (error) {
-    console.error('Failed to initialize Google Calendar:', error);
-    return false;
-  }
+  // Mock implementation - return true to simulate successful initialization
+  console.log('Google Calendar initialization (mock mode)');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return true;
 };
 
 export const signInToGoogle = async (): Promise<boolean> => {
-  try {
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    await authInstance.signIn();
-    return authInstance.isSignedIn.get();
-  } catch (error) {
-    console.error('Failed to sign in to Google:', error);
-    return false;
-  }
+  // Mock sign in - simulate successful authentication
+  console.log('Google sign in (mock mode)');
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  return true;
 };
 
 export const signOutFromGoogle = async (): Promise<void> => {
-  try {
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    await authInstance.signOut();
-  } catch (error) {
-    console.error('Failed to sign out from Google:', error);
-  }
+  // Mock sign out
+  console.log('Google sign out (mock mode)');
+  await new Promise(resolve => setTimeout(resolve, 500));
 };
 
 export const fetchGoogleCalendarEvents = async (): Promise<GoogleCalendarEvent[]> => {
-  try {
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    if (!authInstance.isSignedIn.get()) {
-      throw new Error('Not signed in to Google');
+  // Return mock calendar events
+  console.log('Fetching Google Calendar events (mock mode)');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  const mockEvents: GoogleCalendarEvent[] = [
+    {
+      id: 'mock-1',
+      summary: 'Team Meeting',
+      start: { dateTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() },
+      end: { dateTime: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString() },
+      description: 'Weekly team sync meeting'
+    },
+    {
+      id: 'mock-2', 
+      summary: 'Doctor Appointment',
+      start: { dateTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
+      end: { dateTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString() },
+      description: 'Annual check-up'
     }
-
-    const response = await window.gapi.client.calendar.events.list({
-      calendarId: 'primary',
-      timeMin: new Date().toISOString(),
-      maxResults: 20,
-      singleEvents: true,
-      orderBy: 'startTime'
-    });
-
-    return response.result.items || [];
-  } catch (error) {
-    console.error('Failed to fetch Google Calendar events:', error);
-    return [];
-  }
+  ];
+  
+  return mockEvents;
 };
 
 const loadGoogleAPIs = (): Promise<void> => {
