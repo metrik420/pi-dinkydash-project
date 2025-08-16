@@ -45,8 +45,29 @@ export interface FamilyMember {
 
 export type ThemeMode = "light" | "dark" | "auto";
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  description?: string;
+  source: 'local' | 'google';
+}
+
+export interface WidgetLayout {
+  id: string;
+  type: 'weather' | 'tasks' | 'events' | 'calendar' | 'funfacts' | 'system';
+  enabled: boolean;
+  position: number;
+  size: 'small' | 'medium' | 'large';
+  settings?: Record<string, any>;
+}
+
 export interface FeatureToggles {
   showWeather: boolean;
   showTasks: boolean;
   showEvents: boolean;
+  showCalendar: boolean;
+  showFunFacts: boolean;
+  showSystem: boolean;
 }

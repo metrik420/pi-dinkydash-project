@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Task, EventItem, FamilyMember, FeatureToggles, ThemeMode } from "@/types";
+import type { Task, EventItem, FamilyMember, FeatureToggles, ThemeMode, CalendarEvent, WidgetLayout } from "@/types";
 
 export type Units = "metric" | "imperial";
 
@@ -37,7 +37,22 @@ interface FamilyState {
   deleteFamily: (id: string) => void;
 }
 
-export type DashboardState = SettingsState & TasksState & EventsState & FamilyState;
+interface CalendarState {
+  calendarEvents: CalendarEvent[];
+  googleCalendarConnected: boolean;
+  addCalendarEvent: (e: Omit<CalendarEvent, "id">) => void;
+  updateCalendarEvent: (id: string, patch: Partial<CalendarEvent>) => void;
+  deleteCalendarEvent: (id: string) => void;
+  setGoogleCalendarConnected: (connected: boolean) => void;
+}
+
+interface AdminState {
+  widgetLayout: WidgetLayout[];
+  updateWidgetLayout: (layout: WidgetLayout[]) => void;
+  updateWidget: (id: string, patch: Partial<WidgetLayout>) => void;
+}
+
+export type DashboardState = SettingsState & TasksState & EventsState & FamilyState & CalendarState & AdminState;
 
 const defaultCity = (import.meta as any).env?.VITE_WEATHER_DEFAULT_CITY || "London";
 
@@ -47,7 +62,7 @@ export const useDashboardStore = create<DashboardState>()(
       city: defaultCity,
       units: "metric",
       theme: "auto",
-      toggles: { showWeather: true, showTasks: true, showEvents: true },
+      toggles: { showWeather: true, showTasks: true, showEvents: true, showCalendar: true, showFunFacts: true, showSystem: true },
       setCity: (city) => set({ city }),
       setUnits: (units) => set({ units }),
       setTheme: (theme) => set({ theme }),
@@ -80,6 +95,29 @@ export const useDashboardStore = create<DashboardState>()(
       addFamily: (m) => set((s) => ({ family: [...s.family, { id: crypto.randomUUID(), ...m }] })),
       updateFamily: (id, patch) => set((s) => ({ family: s.family.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
       deleteFamily: (id) => set((s) => ({ family: s.family.filter((m) => m.id !== id) })),
+
+      // Calendar state
+      calendarEvents: [],
+      googleCalendarConnected: false,
+      addCalendarEvent: (e) => set((s) => ({ calendarEvents: [...s.calendarEvents, { id: crypto.randomUUID(), ...e }] })),
+      updateCalendarEvent: (id, patch) => set((s) => ({ calendarEvents: s.calendarEvents.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)) })),
+      deleteCalendarEvent: (id) => set((s) => ({ calendarEvents: s.calendarEvents.filter((ev) => ev.id !== id) })),
+      setGoogleCalendarConnected: (connected) => set({ googleCalendarConnected: connected }),
+
+      // Admin state
+      widgetLayout: [
+        { id: 'time', type: 'weather', enabled: true, position: 0, size: 'large' },
+        { id: 'weather', type: 'weather', enabled: true, position: 1, size: 'medium' },
+        { id: 'system', type: 'system', enabled: true, position: 2, size: 'small' },
+        { id: 'calendar', type: 'calendar', enabled: true, position: 3, size: 'large' },
+        { id: 'events', type: 'events', enabled: true, position: 4, size: 'large' },
+        { id: 'tasks', type: 'tasks', enabled: true, position: 5, size: 'medium' },
+        { id: 'funfacts', type: 'funfacts', enabled: true, position: 6, size: 'medium' },
+      ],
+      updateWidgetLayout: (layout) => set({ widgetLayout: layout }),
+      updateWidget: (id, patch) => set((s) => ({ 
+        widgetLayout: s.widgetLayout.map((w) => (w.id === id ? { ...w, ...patch } : w)) 
+      })),
     }),
     {
       name: "dashboard-store",
@@ -92,6 +130,9 @@ export const useDashboardStore = create<DashboardState>()(
         toggles: state.toggles,
         family: state.family,
         events: state.events,
+        calendarEvents: state.calendarEvents,
+        googleCalendarConnected: state.googleCalendarConnected,
+        widgetLayout: state.widgetLayout,
       }),
     }
   )

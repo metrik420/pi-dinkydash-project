@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, Calendar, Thermometer, Zap, Users, Star, RefreshCcw, Plus, Pencil, Settings as SettingsIcon } from 'lucide-react';
+import { Clock, Calendar, Thermometer, Zap, Users, Star, RefreshCcw, Plus, Pencil, Settings as SettingsIcon, Shield } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
@@ -8,11 +8,13 @@ import { useDashboardStore } from '@/store/dashboard';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { ForecastWidget } from '@/components/ForecastWidget';
 import { TaskModal } from '@/components/TaskModal';
 import { EventModal } from '@/components/EventModal';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { CalendarWidget } from '@/components/CalendarWidget';
+import { AdminPanel } from '@/components/AdminPanel';
 
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -83,6 +85,7 @@ export default function Dashboard() {
   const [eventOpen, setEventOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   const editingTask = useMemo(() => tasks.find((t) => t.id === editingTaskId), [tasks, editingTaskId]);
   const editingEvent = useMemo(() => events.find((e) => e.id === editingEventId), [events, editingEventId]);
@@ -98,6 +101,9 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <Button variant="outline" onClick={() => setAdminOpen(true)} aria-label="Open admin panel">
+              <Shield className="h-4 w-4 mr-2" /> Admin
+            </Button>
             <Button variant="secondary" onClick={() => setSettingsOpen(true)} aria-label="Open settings">
               <SettingsIcon className="h-4 w-4 mr-2" /> Settings
             </Button>
@@ -167,16 +173,18 @@ export default function Dashboard() {
           )}
 
           {/* System Status */}
-          <div className="widget">
-            <div className="widget-title flex items-center gap-2">
-              <Zap className="w-4 h-4" /> Pi Status
+          {toggles.showSystem && (
+            <div className="widget">
+              <div className="widget-title flex items-center gap-2">
+                <Zap className="w-4 h-4" /> Pi Status
+              </div>
+              <div className="text-center">
+                <div className="emoji-large mb-2">🟢</div>
+                <div className="widget-content">Healthy</div>
+                <div className="text-sm text-muted-foreground">All systems go!</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="emoji-large mb-2">🟢</div>
-              <div className="widget-content">Healthy</div>
-              <div className="text-sm text-muted-foreground">All systems go!</div>
-            </div>
-          </div>
+          )}
 
           {/* Forecast */}
           {toggles.showWeather && (
@@ -185,6 +193,13 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Calendar */}
+        {toggles.showCalendar && (
+          <div className="mb-6 md:mb-8">
+            <CalendarWidget />
+          </div>
+        )}
 
         {/* Events (Countdowns) */}
         {toggles.showEvents && (
@@ -270,15 +285,17 @@ export default function Dashboard() {
             </div>
 
             {/* Fun Facts */}
-            <div className="widget">
-              <div className="widget-title flex items-center gap-2">
-                <Star className="w-4 h-4" /> Did You Know?
+            {toggles.showFunFacts && (
+              <div className="widget">
+                <div className="widget-title flex items-center gap-2">
+                  <Star className="w-4 h-4" /> Did You Know?
+                </div>
+                <div className="text-center">
+                  <div className="emoji-large mb-4">🤔</div>
+                  <div className="text-lg text-card-foreground leading-relaxed">{funFacts[currentFactIndex]}</div>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="emoji-large mb-4">🤔</div>
-                <div className="text-lg text-card-foreground leading-relaxed">{funFacts[currentFactIndex]}</div>
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -313,6 +330,7 @@ export default function Dashboard() {
       />
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} />
     </div>
   );
 }
